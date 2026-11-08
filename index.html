@@ -50,7 +50,7 @@
          padding:16px 16px calc(env(safe-area-inset-bottom) + 16px);transform:translateY(110%);transition:transform .25s;max-height:80vh;
          overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
   .panel.open{transform:none}
-  #backdrop{position:fixed;inset:0;z-index:15;background:#0003;display:none;touch-action:none}
+  #backdrop{position:fixed;inset:0;z-index:15;background:transparent;display:none;touch-action:none}
   body.paneled #backdrop{display:block}
   .panel h2{font-size:16px;margin:0 0 12px;display:flex;justify-content:space-between;align-items:center}
   .set{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}
@@ -166,7 +166,8 @@
       const r = db.transaction('docs').objectStore('docs').get('last'); r.onsuccess = () => res(r.result); r.onerror = () => res(null); }); }catch(e){ return null; } }
 
   // ---- 설정 ----
-  const cfg = Object.assign({fs:18, lh:'1.8', pad:'20', font:'sans', theme:'light', tap:'1', enc:'auto', mt:'1', mb:'1', ov:'1', blank:'off'}, store.get('cfg', {}));
+  const cfg = Object.assign({fs:18, lh:'1.8', pad:'20', font:'sans', theme:'light', tap:'1', enc:'auto', mt:'1', mb:'0', ov:'1', blank:'off'}, store.get('cfg', {}));
+  if (!cfg.v){ cfg.mb = '0'; cfg.v = 2; }
   const fonts = { sans:'-apple-system, "Apple SD Gothic Neo", sans-serif',
                   serif:'"AppleMyungjo", "Nanum Myeongjo", "Noto Serif KR", Georgia, serif',
                   mono:'ui-monospace, Menlo, "D2Coding", monospace' };
@@ -191,9 +192,11 @@
     const pr = getComputedStyle($('#probe'));
     const st = parseFloat(pr.paddingTop) || 0, sb = parseFloat(pr.paddingBottom) || 0;
     const lh = LH(), H = innerHeight;
-    const top = Math.max(st, 8) + Number(cfg.mt) * lh;
-    const avail = H - top - Math.max(sb, 8) - Number(cfg.mb) * lh;
+    const top0 = Math.max(st, 8) + Number(cfg.mt) * lh;
+    const avail = H - top0 - Math.max(sb - 10, 6) - Number(cfg.mb) * lh;
     nLines = Math.max(3, Math.floor(avail / lh));
+    // 한 줄이 안 되는 남는 공간은 위·아래에 반씩 나눠서 아래가 휑하지 않게
+    const top = top0 + Math.floor((avail - nLines * lh) / 2);
     view.style.top = top + 'px';
     view.style.height = (nLines * lh) + 'px';
     view.style.bottom = 'auto';
