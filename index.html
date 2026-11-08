@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="텍스트뷰어">
+<title>텍스트 뷰어</title>
+<style>
+  :root{
+    --bg:#fbfaf7; --fg:#222; --muted:#888; --bar:#ffffffee; --line:#e3e0d8; --accent:#2f6fde; --mark:#ffe36b;
+    --fs:18px; --lh:1.8; --font:-apple-system, "Apple SD Gothic Neo", sans-serif; --pad:20px;
+  }
+  body.sepia{ --bg:#f4ecd8; --fg:#4b3b2a; --muted:#8a7a66; --bar:#efe5ccee; --line:#ddd0b0; --mark:#f5c96a; }
+  body.dark { --bg:#121212; --fg:#d6d6d6; --muted:#777; --bar:#1e1e1eee; --line:#333; --accent:#6ea0ff; --mark:#806a00; }
+  body.black{ --bg:#000; --fg:#bdbdbd; --muted:#666; --bar:#111e; --line:#222; --accent:#6ea0ff; --mark:#6b5800; }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--fg)}
+  body{font-family:-apple-system,"Apple SD Gothic Neo",sans-serif;-webkit-text-size-adjust:100%}
+  button,select,input{font:inherit;color:inherit}
+  .bar{position:fixed;left:0;right:0;z-index:10;background:var(--bar);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+       border-color:var(--line);transition:transform .2s}
+  #top{top:0;border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top) + 8px) 12px 8px;display:flex;gap:8px;align-items:center}
+  #bottom{bottom:0;border-top:1px solid var(--line);padding:8px 12px calc(env(safe-area-inset-bottom) + 8px)}
+  body.hideui #top{transform:translateY(-100%)}
+  body.hideui #bottom{transform:translateY(100%)}
+  #title{flex:1;font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .btn{border:1px solid var(--line);background:transparent;border-radius:10px;padding:8px 12px;font-size:15px;min-height:40px}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .icon{min-width:40px;padding:8px}
+  #progress{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+  #progress input{flex:1;accent-color:var(--accent)}
+  :root{--vpad:40px}
+  .mask{position:fixed;left:0;right:0;z-index:5;background:var(--bg);pointer-events:none}
+  #maskTop{top:0;height:calc(env(safe-area-inset-top) + var(--vpad))}
+  #maskBot{bottom:0;height:calc(env(safe-area-inset-bottom) + var(--vpad))}
+  #reader{padding:calc(env(safe-area-inset-top) + var(--vpad) + 64px) calc(var(--pad) + env(safe-area-inset-right)) calc(env(safe-area-inset-bottom) + var(--vpad) + 40vh) calc(var(--pad) + env(safe-area-inset-left));
+          font-family:var(--font);font-size:var(--fs);line-height:var(--lh);white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere;
+          max-width:760px;margin:0 auto;min-height:100vh}
+  #reader .c{margin:0}
+  mark{background:var(--mark);color:inherit;border-radius:3px}
+  #empty{text-align:center;padding:30vh 24px 0;color:var(--muted);white-space:normal;font-family:-apple-system,sans-serif;font-size:16px;line-height:1.6}
+  #empty h1{font-size:22px;color:var(--fg);margin:0 0 8px}
+  #empty .row{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap}
+  .panel{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--bg);border-top:1px solid var(--line);border-radius:16px 16px 0 0;
+         padding:16px 16px calc(env(safe-area-inset-bottom) + 16px);box-shadow:0 -8px 30px #0003;transform:translateY(110%);transition:transform .25s;max-height:80vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y}
+  .panel.open{transform:none}
+  #backdrop{position:fixed;inset:0;z-index:15;background:#0002;display:none;touch-action:none}
+  body.locked #backdrop{display:block}
+  body.locked{position:fixed;left:0;right:0;overflow:hidden}
+  .panel h2{font-size:16px;margin:0 0 12px;display:flex;justify-content:space-between;align-items:center}
+  .set{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}
+  .set:last-child{border-bottom:0}
+  .seg{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .seg .btn.on{border-color:var(--accent);color:var(--accent);font-weight:600}
+  .sw{width:28px;height:28px;border-radius:50%;border:2px solid var(--line);padding:0}
+  .sw.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+  select{font-size:16px;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg)}
+  #searchbar{display:none;gap:6px;align-items:center;margin-bottom:8px}
+  #searchbar.open{display:flex}
+  #q{flex:1;font-size:16px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);min-width:0}
+  #count{font-size:13px;color:var(--muted);min-width:52px;text-align:center}
+  textarea{width:100%;height:40vh;font-size:16px;border-radius:10px;border:1px solid var(--line);background:var(--bg);padding:10px}
+  #toast{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);background:#000c;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:30}
+  #toast.show{opacity:1}
+  .hint{font-size:12px;color:var(--muted);margin-top:4px}
+</style>
+</head>
+<body>
+<div class="mask" id="maskTop"></div><div class="mask" id="maskBot"></div>
+<div id="top" class="bar">
+  <button class="btn icon" id="openBtn" aria-label="파일 열기">📂</button>
+  <div id="title">텍스트 뷰어</div>
+  <button class="btn icon" id="searchBtn" aria-label="검색">🔍</button>
+  <button class="btn icon" id="setBtn" aria-label="설정">Aa</button>
+</div>
+
+<div id="reader"><div id="empty">
+  <h1>텍스트 뷰어</h1>
+  .txt 파일을 열거나 텍스트를 붙여넣어 읽어보세요.<br>한글(EUC-KR/CP949) 파일도 자동으로 인식합니다.
+  <div class="row">
+    <button class="btn primary" id="openBtn2">파일 열기</button>
+    <button class="btn" id="pasteBtn">텍스트 붙여넣기</button>
+  </div>
+  <div class="row" id="resumeRow" style="display:none"><button class="btn" id="resumeBtn">마지막 문서 이어 읽기</button></div>
+</div></div>
+
+<div id="bottom" class="bar">
+  <div id="searchbar">
+    <input id="q" type="search" placeholder="본문 검색" enterkeyhint="search" autocomplete="off">
+    <span id="count"></span>
+    <button class="btn icon" id="prevBtn">▲</button>
+    <button class="btn icon" id="nextBtn">▼</button>
+  </div>
+  <div id="progress">
+    <input id="slider" type="range" min="0" max="1000" value="0">
+    <span id="pct">0%</span>
+  </div>
+</div>
+
+<div class="panel" id="setPanel">
+  <h2>보기 설정 <button class="btn" data-close>닫기</button></h2>
+  <div class="set">글자 크기
+    <div class="seg"><button class="btn icon" id="fsDown">가−</button><span id="fsVal" style="min-width:36px;text-align:center"></span><button class="btn icon" id="fsUp">가+</button></div></div>
+  <div class="set">줄 간격
+    <div class="seg" id="lhSeg"><button class="btn" data-v="1.5">좁게</button><button class="btn" data-v="1.8">보통</button><button class="btn" data-v="2.2">넓게</button></div></div>
+  <div class="set">여백
+    <div class="seg" id="padSeg"><button class="btn" data-v="12">좁게</button><button class="btn" data-v="20">보통</button><button class="btn" data-v="32">넓게</button></div></div>
+  <div class="set"><div>위·아래 여백<div class="hint">화면 모서리 곡률·노치에 글자가 잘리지 않게 비워두는 공간</div></div>
+    <div class="seg" id="vpadSeg"><button class="btn" data-v="16">작게</button><button class="btn" data-v="40">보통</button><button class="btn" data-v="70">크게</button></div></div>
+  <div class="set"><div>넘길 때 겹쳐 보일 줄 수<div class="hint">다음 페이지 맨 위에 이전 페이지 마지막 줄을 남겨둠</div></div>
+    <div class="seg" id="ovSeg"><button class="btn" data-v="0">0</button><button class="btn" data-v="1">1</button><button class="btn" data-v="2">2</button><button class="btn" data-v="3">3</button></div></div>
+  <div class="set"><div>빈 줄(문단 사이 여백) 줄이기<div class="hint">엔터로 띄운 빈 줄을 정리</div></div>
+    <div class="seg" id="blankSeg"><button class="btn" data-v="off">원본</button><button class="btn" data-v="one">한 줄만</button><button class="btn" data-v="none">없애기</button></div></div>
+  <div class="set">글꼴
+    <div class="seg" id="fontSeg"><button class="btn" data-v="sans">고딕</button><button class="btn" data-v="serif">명조</button><button class="btn" data-v="mono">고정폭</button></div></div>
+  <div class="set">배경
+    <div class="seg" id="themeSeg">
+      <button class="sw" data-v="light" style="background:#fbfaf7" aria-label="밝게"></button>
+      <button class="sw" data-v="sepia" style="background:#f4ecd8" aria-label="세피아"></button>
+      <button class="sw" data-v="dark" style="background:#121212" aria-label="어둡게"></button>
+      <button class="sw" data-v="black" style="background:#000" aria-label="검정"></button>
+    </div></div>
+  <div class="set"><div>탭으로 페이지 넘기기<div class="hint">화면 위쪽 탭: 이전 · 아래쪽 탭: 다음 · 가운데 탭: 메뉴</div></div>
+    <div class="seg" id="tapSeg"><button class="btn" data-v="1">켜기</button><button class="btn" data-v="0">끄기</button></div></div>
+  <div class="set">문자 인코딩
+    <select id="enc">
+      <option value="auto">자동</option><option value="utf-8">UTF-8</option><option value="euc-kr">EUC-KR / CP949</option>
+      <option value="utf-16le">UTF-16 LE</option><option value="utf-16be">UTF-16 BE</option><option value="shift_jis">Shift_JIS</option><option value="gb18030">GB18030</option>
+    </select></div>
+</div>
+
+<div class="panel" id="pastePanel">
+  <h2>텍스트 붙여넣기 <button class="btn" data-close>닫기</button></h2>
+  <textarea id="pasteArea" placeholder="여기에 길게 눌러 붙여넣기"></textarea>
+  <div style="margin-top:10px;text-align:right"><button class="btn primary" id="pasteOk">읽기</button></div>
+</div>
+
+<input type="file" id="file" accept=".txt,.text,.md,.log,.csv,.srt,.smi,text/*" hidden>
+<div id="backdrop"></div>
+<div id="toast"></div>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const reader = $('#reader'), body = document.body;
+  const store = {
+    get(k, d){ try{ const v = localStorage.getItem('tv.'+k); return v==null ? d : JSON.parse(v); }catch(e){ return d; } },
+    set(k, v){ try{ localStorage.setItem('tv.'+k, JSON.stringify(v)); }catch(e){} }
+  };
+  // ---- IndexedDB: 마지막 문서 보관 ----
+  function idb(){ return new Promise((res, rej) => { try{
+      const r = indexedDB.open('textviewer', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('docs');
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    }catch(e){ rej(e); } }); }
+  async function saveLast(doc){ try{ const db = await idb(); db.transaction('docs','readwrite').objectStore('docs').put(doc,'last'); }catch(e){} }
+  async function loadLast(){ try{ const db = await idb(); return await new Promise(res => {
+      const r = db.transaction('docs').objectStore('docs').get('last'); r.onsuccess = () => res(r.result); r.onerror = () => res(null); }); }catch(e){ return null; } }
+
+  // ---- 설정 ----
+  const cfg = Object.assign({fs:18, lh:'1.8', pad:'20', font:'sans', theme:'light', tap:'1', enc:'auto', vpad:'40', ov:'1', blank:'off'}, store.get('cfg', {}));
+  const fonts = { sans:'-apple-system, "Apple SD Gothic Neo", sans-serif',
+                  serif:'"AppleMyungjo", "Nanum Myeongjo", "Noto Serif KR", Georgia, serif',
+                  mono:'ui-monospace, Menlo, "D2Coding", monospace' };
+  function applyCfg(){
+    const r = document.documentElement.style;
+    r.setProperty('--fs', cfg.fs+'px'); r.setProperty('--lh', cfg.lh); r.setProperty('--pad', cfg.pad+'px'); r.setProperty('--font', fonts[cfg.font]); r.setProperty('--vpad', cfg.vpad+'px');
+    body.classList.remove('sepia','dark','black'); if (cfg.theme !== 'light') body.classList.add(cfg.theme);
+    $('#fsVal').textContent = cfg.fs;
+    [['#lhSeg','lh'],['#padSeg','pad'],['#fontSeg','font'],['#themeSeg','theme'],['#tapSeg','tap'],['#vpadSeg','vpad'],['#ovSeg','ov']].forEach(([sel,k]) =>
+      document.querySelectorAll(sel+' [data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === String(cfg[k]))));
+    document.querySelectorAll('#blankSeg [data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === cfg.blank));
+    $('#enc').value = cfg.enc;
+    store.set('cfg', cfg);
+  }
+  function keepPos(fn){ const p = getRatio(); fn(); applyCfg(); setRatio(p); }
+  $('#fsUp').onclick = () => keepPos(() => cfg.fs = Math.min(40, cfg.fs + 1));
+  $('#fsDown').onclick = () => keepPos(() => cfg.fs = Math.max(11, cfg.fs - 1));
+  [['#lhSeg','lh'],['#padSeg','pad'],['#fontSeg','font'],['#themeSeg','theme'],['#tapSeg','tap'],['#vpadSeg','vpad'],['#ovSeg','ov']].forEach(([sel,k]) =>
+    document.querySelectorAll(sel+' [data-v]').forEach(b => b.onclick = () => keepPos(() => cfg[k] = b.dataset.v)));
+  document.querySelectorAll('#blankSeg [data-v]').forEach(b => b.onclick = () => {
+    cfg.blank = b.dataset.v; const p = getRatio(); applyCfg(); if (doc) render(doc.raw, doc.name, doc.buf, p); });
+  $('#enc').onchange = e => { cfg.enc = e.target.value; applyCfg(); if (doc && doc.buf) render(decode(doc.buf), doc.name, doc.buf, true); };
+
+  // ---- 패널 ----
+  // 패널이 열려 있는 동안 본문 스크롤을 잠가서 패널만 스크롤되게
+  let lockY = 0;
+  function lock(on){
+    if (on === body.classList.contains('locked')) return;
+    if (on){ lockY = scroller.scrollTop; body.style.top = -lockY + 'px'; body.classList.add('locked'); }
+    else { body.classList.remove('locked'); body.style.top = ''; scroller.scrollTop = lockY; }
+  }
+  function openPanel(id){ document.querySelectorAll('.panel').forEach(p => p.classList.toggle('open', p.id === id)); lock(!!id); }
+  function closePanels(){ document.querySelectorAll('.panel').forEach(p => p.classList.remove('open')); lock(false); }
+  $('#backdrop').addEventListener('click', closePanels);
+  $('#backdrop').addEventListener('touchmove', e => e.preventDefault(), {passive:false});
+  document.querySelectorAll('[data-close]').forEach(b => b.onclick = closePanels);
+  $('#setBtn').onclick = () => openPanel($('#setPanel').classList.contains('open') ? null : 'setPanel');
+  $('#pasteBtn').onclick = () => { openPanel('pastePanel'); setTimeout(() => $('#pasteArea').focus(), 250); };
+  $('#pasteOk').onclick = () => { const t = $('#pasteArea').value; if (!t.trim()) return; closePanels(); $('#pasteArea').value='';
+    render(t, '붙여넣은 텍스트'); };
+
+  function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 1400); }
+
+  // ---- 파일 열기 / 디코딩 ----
+  const fileIn = $('#file');
+  $('#openBtn').onclick = $('#openBtn2').onclick = () => fileIn.click();
+  fileIn.onchange = async () => {
+    const f = fileIn.files[0]; if (!f) return; fileIn.value = '';
+    const buf = new Uint8Array(await f.arrayBuffer());
+    render(decode(buf), f.name, buf);
+  };
+  function tryDecode(enc, buf, fatal){ try{ return new TextDecoder(enc, {fatal}).decode(buf); }catch(e){ return null; } }
+  function decode(buf){
+    if (cfg.enc !== 'auto') return tryDecode(cfg.enc, buf, false) ?? tryDecode('utf-8', buf, false);
+    if (buf[0]===0xEF && buf[1]===0xBB && buf[2]===0xBF) return tryDecode('utf-8', buf.subarray(3), false);
+    if (buf[0]===0xFF && buf[1]===0xFE) return tryDecode('utf-16le', buf.subarray(2), false);
+    if (buf[0]===0xFE && buf[1]===0xFF) return tryDecode('utf-16be', buf.subarray(2), false);
+    const u = tryDecode('utf-8', buf, true); if (u != null) return u;
+    const k = tryDecode('euc-kr', buf, false); if (k != null) { toast('EUC-KR로 열었습니다'); return k; }
+    return tryDecode('utf-8', buf, false);
+  }
+
+  // ---- 렌더링 (큰 파일 대비 청크 분할) ----
+  let doc = null, chunks = [], chunkEls = [], key = '';
+  const CHUNK = 4000; // 글자 수
+  function hashKey(name, text){ let h = 0; const s = text.slice(0, 2000); for (let i=0;i<s.length;i++) h = (h*31 + s.charCodeAt(i)) | 0; return name + ':' + text.length + ':' + h; }
+  function render(text, name, buf, keepPlace){
+    const raw = text.replace(/\r\n?/g, '\n');
+    const prev = typeof keepPlace === 'number' ? keepPlace : keepPlace ? getRatio() : null;
+    key = hashKey(name, raw);
+    if (cfg.blank === 'one') text = raw.replace(/\n([ \t\u3000]*\n)+/g, '\n\n');
+    else if (cfg.blank === 'none') text = raw.replace(/\n([ \t\u3000]*\n)+/g, '\n');
+    else text = raw;
+    doc = { name, text, raw, buf: buf || null };
+    chunks = []; let i = 0;
+    while (i < text.length){
+      let end = Math.min(text.length, i + CHUNK);
+      if (end < text.length){ const nl = text.indexOf('\n', end); end = nl === -1 || nl - end > 2000 ? end : nl + 1; }
+      chunks.push([i, end]); i = end;
+    }
+    reader.textContent = ''; chunkEls = [];
+    const frag = document.createDocumentFragment();
+    for (const [a,b] of chunks){ const d = document.createElement('div'); d.className='c'; d.textContent = text.slice(a,b); frag.appendChild(d); chunkEls.push(d); }
+    reader.appendChild(frag);
+    $('#title').textContent = name; document.title = name + ' – 텍스트 뷰어';
+    hits = []; curHit = -1; markedChunk = -1; $('#count').textContent = '';
+    if ($('#q').value) doSearch();
+    requestAnimationFrame(() => { setRatio(prev ?? (store.get('pos', {})[key] || 0)); });
+    saveLast({ name, text: raw, buf: buf || null });
+  }
+
+  // ---- 위치/진행률 ----
+  const scroller = document.scrollingElement || document.documentElement;
+  function maxScroll(){ return Math.max(1, reader.offsetHeight - innerHeight); }
+  // 실제로 글이 보이는 영역(위·아래 바/여백 제외)
+  function viewBox(){
+    const ui = !body.classList.contains('hideui');
+    let top = $('#maskTop').getBoundingClientRect().bottom, bot = $('#maskBot').getBoundingClientRect().top;
+    if (ui){ top = Math.max(top, $('#top').getBoundingClientRect().bottom); bot = Math.min(bot, $('#bottom').getBoundingClientRect().top); }
+    return {top, bot};
+  }
+  function linePx(){ return cfg.fs * parseFloat(cfg.lh); }
+  function page(dir){
+    const {top, bot} = viewBox(), lh = linePx();
+    const lines = Math.max(1, Math.floor((bot - top) / lh) - Number(cfg.ov));
+    // 줄 경계에 맞춰서 맨 윗줄이 반쯤 잘리지 않게
+    const padTop = parseFloat(getComputedStyle(reader).paddingTop);
+    const target = scroller.scrollTop + dir * lines * lh;
+    const k = Math.round((target + top - padTop) / lh);
+    scroller.scrollTop = Math.max(0, padTop + k * lh - top);
+  }
+  function getRatio(){ return (body.classList.contains('locked') ? lockY : scroller.scrollTop) / maxScroll(); }
+  function setRatio(r){ const y = r * maxScroll();
+    if (body.classList.contains('locked')){ lockY = y; body.style.top = -y + 'px'; } else scroller.scrollTop = y; updateProgress(); }
+  function updateProgress(){
+    const r = doc ? Math.min(1, getRatio()) : 0;
+    $('#slider').value = Math.round(r*1000); $('#pct').textContent = (r*100).toFixed(1) + '%';
+  }
+  let saveT;
+  addEventListener('scroll', () => { updateProgress();
+    clearTimeout(saveT); saveT = setTimeout(() => { if (!doc) return; const p = store.get('pos', {}); p[key] = getRatio();
+      const ks = Object.keys(p); if (ks.length > 200) delete p[ks[0]]; store.set('pos', p); }, 300); }, {passive:true});
+  $('#slider').oninput = e => { if (doc) setRatio(e.target.value / 1000); };
+
+  // ---- 탭 동작 ----
+  reader.addEventListener('click', e => {
+    if (!doc) return;
+    if (document.querySelector('.panel.open')){ closePanels(); return; }
+    if (getSelection && String(getSelection())) return;
+    const y = e.clientY / innerHeight;
+    if (cfg.tap === '1' && y < 0.3){ page(-1); }
+    else if (cfg.tap === '1' && y > 0.7){ page(1); }
+    else body.classList.toggle('hideui');
+  });
+  addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' '){ e.preventDefault(); page(1); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp'){ e.preventDefault(); page(-1); }
+  });
+
+  // ---- 검색 ----
+  let hits = [], curHit = -1, markedChunk = -1;
+  $('#searchBtn').onclick = () => { const sb = $('#searchbar'); sb.classList.toggle('open'); body.classList.remove('hideui');
+    if (sb.classList.contains('open')) $('#q').focus(); else clearMark(); };
+  let qT; $('#q').oninput = () => { clearTimeout(qT); qT = setTimeout(doSearch, 250); };
+  $('#q').onkeydown = e => { if (e.key === 'Enter'){ e.preventDefault(); $('#q').blur(); step(e.shiftKey ? -1 : 1); } };
+  $('#nextBtn').onclick = () => step(1); $('#prevBtn').onclick = () => step(-1);
+  function doSearch(){
+    clearMark(); hits = []; curHit = -1;
+    const q = $('#q').value; if (!doc || !q){ $('#count').textContent = ''; return; }
+    const T = doc.text.toLowerCase(), Q = q.toLowerCase();
+    let i = T.indexOf(Q); while (i !== -1 && hits.length < 10000){ hits.push(i); i = T.indexOf(Q, i + Q.length); }
+    if (!hits.length){ $('#count').textContent = '0건'; return; }
+    // 현재 화면 위치 이후의 첫 결과부터
+    const here = Math.floor(getRatio() * doc.text.length);
+    curHit = Math.max(0, hits.findIndex(h => h >= here)); if (hits[curHit] < here) curHit = 0;
+    show();
+  }
+  function step(d){ if (!hits.length){ doSearch(); return; } curHit = (curHit + d + hits.length) % hits.length; show(); }
+  function clearMark(){ if (markedChunk >= 0){ const [a,b] = chunks[markedChunk]; chunkEls[markedChunk].textContent = doc.text.slice(a,b); markedChunk = -1; } }
+  function show(){
+    clearMark();
+    const pos = hits[curHit], len = $('#q').value.length;
+    const ci = chunks.findIndex(([a,b]) => pos >= a && pos < b); if (ci < 0) return;
+    const [a,b] = chunks[ci], el = chunkEls[ci], t = doc.text;
+    el.textContent = '';
+    const m = document.createElement('mark'); m.textContent = t.slice(pos, pos+len);
+    el.append(t.slice(a, pos), m, t.slice(pos+len, Math.max(b, pos+len)));
+    markedChunk = ci;
+    const r = m.getBoundingClientRect();
+    const vb = viewBox(); scroller.scrollTop += r.top - (vb.top + (vb.bot - vb.top) * 0.3);
+    $('#count').textContent = (curHit+1) + '/' + hits.length;
+  }
+
+  // ---- 시작 ----
+  applyCfg();
+  loadLast().then(d => { if (d && d.text){ $('#resumeRow').style.display = ''; $('#resumeBtn').onclick = () => render(d.text, d.name, d.buf); } });
+})();
+</script>
+</body>
+</html>
