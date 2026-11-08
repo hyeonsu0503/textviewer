@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="텍스트뷰어">
 <title>텍스트 뷰어</title>
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -167,7 +167,7 @@
 
   // ---- 설정 ----
   const cfg = Object.assign({fs:18, lh:'1.8', pad:'20', font:'sans', theme:'light', tap:'1', enc:'auto', mt:'1', mb:'0', ov:'1', blank:'off'}, store.get('cfg', {}));
-  if (!cfg.v){ cfg.mb = '0'; cfg.v = 2; }
+  if ((cfg.v||0) < 3){ cfg.mb = '0'; cfg.v = 3; }
   const fonts = { sans:'-apple-system, "Apple SD Gothic Neo", sans-serif',
                   serif:'"AppleMyungjo", "Nanum Myeongjo", "Noto Serif KR", Georgia, serif',
                   mono:'ui-monospace, Menlo, "D2Coding", monospace' };
@@ -192,11 +192,11 @@
     const pr = getComputedStyle($('#probe'));
     const st = parseFloat(pr.paddingTop) || 0, sb = parseFloat(pr.paddingBottom) || 0;
     const lh = LH(), H = innerHeight;
-    const top0 = Math.max(st, 8) + Number(cfg.mt) * lh;
-    const avail = H - top0 - Math.max(sb - 10, 6) - Number(cfg.mb) * lh;
+    // 아래 여백 0줄 = 화면 맨 아래까지 글자. 한 줄이 안 되는 남는 공간은 전부 위쪽으로
+    const top0 = Math.max(st, 4) + Number(cfg.mt) * lh;
+    const avail = H - top0 - Number(cfg.mb) * lh;
     nLines = Math.max(3, Math.floor(avail / lh));
-    // 한 줄이 안 되는 남는 공간은 위·아래에 반씩 나눠서 아래가 휑하지 않게
-    const top = top0 + Math.floor((avail - nLines * lh) / 2);
+    const top = top0 + (avail - nLines * lh);
     view.style.top = top + 'px';
     view.style.height = (nLines * lh) + 'px';
     view.style.bottom = 'auto';
