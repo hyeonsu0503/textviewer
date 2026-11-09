@@ -13,7 +13,7 @@
 <style>
   :root{
     --bg:#fbfaf7; --fg:#222; --muted:#888; --line:#e3e0d8; --accent:#2f6fde; --mark:#ffe36b;
-    --fs:18px; --lhpx:32px; --font:-apple-system, "Apple SD Gothic Neo", sans-serif; --pad:20px;
+    --fs:18px; --lhpx:32px; --font:-apple-system, "Apple SD Gothic Neo", sans-serif; --pad:20px; --mw:none;
   }
   body.sepia{ --bg:#f4ecd8; --fg:#4b3b2a; --muted:#8a7a66; --line:#ddd0b0; --mark:#f5c96a; }
   body.dark { --bg:#121212; --fg:#d6d6d6; --muted:#777; --line:#333; --accent:#6ea0ff; --mark:#806a00; }
@@ -26,10 +26,13 @@
 
   /* 본문 영역: 상태바/홈 표시줄 밖의 '딱 n줄' 높이로만 존재. 문서 자체는 스크롤되지 않음 */
   #view{position:fixed;left:0;right:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:var(--bg)}
-  #reader{padding:0 calc(var(--pad) + env(safe-area-inset-right)) 0 calc(var(--pad) + env(safe-area-inset-left));
+  #view2{position:fixed;overflow:hidden;background:var(--bg);display:none;box-shadow:inset 1px 0 0 var(--line)}
+  body.spread #view2{display:block}
+  body.spread #view{overflow:hidden}
+  #reader,#reader2{padding:0 calc(var(--pad) + env(safe-area-inset-right)) 0 calc(var(--pad) + env(safe-area-inset-left));
           font-family:var(--font);font-size:var(--fs);line-height:var(--lhpx);white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere;
-          max-width:760px;margin:0 auto}
-  #reader .c{margin:0}
+          max-width:var(--mw);margin:0 auto}
+  #reader .c,#reader2 .c{margin:0}
   mark{background:var(--mark);color:inherit;border-radius:3px;line-height:inherit}
   #empty{text-align:center;padding:20vh 24px 0;color:var(--muted);white-space:normal;font-family:-apple-system,sans-serif;font-size:16px;line-height:1.6}
   #empty h1{font-size:22px;color:var(--fg);margin:0 0 8px}
@@ -83,6 +86,7 @@
   </div>
   <div class="row" id="resumeRow" style="display:none"><button class="btn" id="resumeBtn">마지막 문서 이어 읽기</button></div>
 </div></div></div>
+<div id="view2"><div id="reader2"></div></div>
 
 <div id="bottom" class="bar">
   <div id="searchbar">
@@ -117,9 +121,13 @@
     <div class="seg" id="mbSeg"><button class="btn" data-v="0">0</button><button class="btn" data-v="1">1</button><button class="btn" data-v="2">2</button><button class="btn" data-v="3">3</button></div></div>
   <div class="set"><div>겹쳐 보일 줄<div class="hint">넘길 때 이전 페이지 끝줄을 위에 남김</div></div>
     <div class="seg" id="ovSeg"><button class="btn" data-v="0">0</button><button class="btn" data-v="1">1</button><button class="btn" data-v="2">2</button><button class="btn" data-v="3">3</button></div></div>
+  <div class="set">양쪽 보기
+    <div class="seg" id="spreadSeg"><button class="btn" data-v="off">끄기</button><button class="btn" data-v="land">가로일 때</button><button class="btn" data-v="on">항상</button></div></div>
   <div class="set">좌우 여백
-    <div class="seg" id="padSeg"><button class="btn" data-v="12">좁게</button><button class="btn" data-v="20">보통</button><button class="btn" data-v="32">넓게</button></div></div>
-  <div class="set"><div>빈 줄(문단 사이 여백) 줄이기<div class="hint">엔터로 띄운 빈 줄을 정리</div></div>
+    <div class="seg" id="padSeg"><button class="btn" data-v="4">0</button><button class="btn" data-v="12">좁게</button><button class="btn" data-v="20">보통</button><button class="btn" data-v="40">넓게</button></div></div>
+  <div class="set">본문 최대 폭
+    <div class="seg" id="mwSeg"><button class="btn" data-v="700">좁게</button><button class="btn" data-v="1000">보통</button><button class="btn" data-v="none">꽉 차게</button></div></div>
+  <div class="set"><div>빈 줄 줄이기<div class="hint">문단 사이 빈 줄 정리</div></div>
     <div class="seg" id="blankSeg"><button class="btn" data-v="off">원본</button><button class="btn" data-v="one">한 줄만</button><button class="btn" data-v="none">없애기</button></div></div>
   <div class="set">글꼴
     <div class="seg" id="fontSeg"><button class="btn" data-v="sans">고딕</button><button class="btn" data-v="serif">명조</button><button class="btn" data-v="mono">고정폭</button></div></div>
@@ -130,7 +138,7 @@
       <button class="sw" data-v="dark" style="background:#121212" aria-label="어둡게"></button>
       <button class="sw" data-v="black" style="background:#000" aria-label="검정"></button>
     </div></div>
-  <div class="set"><div>탭으로 페이지 넘기기<div class="hint">위쪽 탭: 이전 · 아래쪽 탭: 다음 · 가운데 탭: 메뉴</div></div>
+  <div class="set"><div>탭으로 페이지 넘기기<div class="hint">위·왼쪽: 이전 · 아래·오른쪽: 다음 · 가운데: 메뉴</div></div>
     <div class="seg" id="tapSeg"><button class="btn" data-v="1">켜기</button><button class="btn" data-v="0">끄기</button></div></div>
   <div class="set">문자 인코딩
     <select id="enc">
@@ -151,7 +159,7 @@
 <script>
 (() => {
   const $ = s => document.querySelector(s);
-  const view = $('#view'), reader = $('#reader'), body = document.body;
+  const view = $('#view'), reader = $('#reader'), view2 = $('#view2'), reader2 = $('#reader2'), body = document.body;
   const store = {
     get(k, d){ try{ const v = localStorage.getItem('tv.'+k); return v==null ? d : JSON.parse(v); }catch(e){ return d; } },
     set(k, v){ try{ localStorage.setItem('tv.'+k, JSON.stringify(v)); }catch(e){} }
@@ -166,18 +174,18 @@
       const r = db.transaction('docs').objectStore('docs').get('last'); r.onsuccess = () => res(r.result); r.onerror = () => res(null); }); }catch(e){ return null; } }
 
   // ---- 설정 ----
-  const cfg = Object.assign({fs:18, lh:'1.8', pad:'20', font:'sans', theme:'light', tap:'1', enc:'auto', mt:'1', mb:'0', ov:'1', blank:'off'}, store.get('cfg', {}));
+  const cfg = Object.assign({fs:18, lh:'1.8', pad:'20', font:'sans', theme:'light', tap:'1', enc:'auto', mt:'1', mb:'0', ov:'1', blank:'off', spread:'land', mw:'none'}, store.get('cfg', {}));
   if ((cfg.v||0) < 4){ cfg.mt = '1'; cfg.mb = '0'; cfg.v = 4; }
   const fonts = { sans:'-apple-system, "Apple SD Gothic Neo", sans-serif',
                   serif:'"AppleMyungjo", "Nanum Myeongjo", "Noto Serif KR", Georgia, serif',
                   mono:'ui-monospace, Menlo, "D2Coding", monospace' };
-  const SEGS = [['#lhSeg','lh'],['#padSeg','pad'],['#fontSeg','font'],['#themeSeg','theme'],['#tapSeg','tap'],['#mtSeg','mt'],['#mbSeg','mb'],['#ovSeg','ov'],['#blankSeg','blank']];
+  const SEGS = [['#lhSeg','lh'],['#padSeg','pad'],['#fontSeg','font'],['#themeSeg','theme'],['#tapSeg','tap'],['#spreadSeg','spread'],['#mwSeg','mw'],['#mtSeg','mt'],['#mbSeg','mb'],['#ovSeg','ov'],['#blankSeg','blank']];
   // 줄 높이는 정수 px로 고정 (소수점 누적 오차로 줄이 잘리는 것 방지)
   function LH(){ return Math.round(cfg.fs * parseFloat(cfg.lh)); }
 
   function applyCfg(){
     const r = document.documentElement.style;
-    r.setProperty('--fs', cfg.fs+'px'); r.setProperty('--lhpx', LH()+'px'); r.setProperty('--pad', cfg.pad+'px'); r.setProperty('--font', fonts[cfg.font]);
+    r.setProperty('--fs', cfg.fs+'px'); r.setProperty('--lhpx', LH()+'px'); r.setProperty('--pad', cfg.pad+'px'); r.setProperty('--mw', cfg.mw === 'none' ? 'none' : cfg.mw+'px'); r.setProperty('--font', fonts[cfg.font]);
     body.classList.remove('sepia','dark','black'); if (cfg.theme !== 'light') body.classList.add(cfg.theme);
     $('#fsVal').textContent = cfg.fs;
     SEGS.forEach(([sel,k]) => document.querySelectorAll(sel+' [data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === String(cfg[k]))));
@@ -187,7 +195,16 @@
   }
 
   // ---- 레이아웃: 본문 창을 '안전 영역 + 여백 줄 수' 안쪽에 정확히 n줄 높이로 배치 ----
-  let nLines = 10;
+  let nLines = 10, spread = false, chunkEls2 = [], r2key = '';
+  // 양쪽 보기: 오른쪽 쪽은 같은 글을 복제해서 n줄 아래부터 보여줌
+  function fillReader2(){
+    const k = key + '|' + cfg.blank;
+    if (!doc || r2key === k) return;
+    reader2.textContent = ''; chunkEls2 = [];
+    const frag = document.createDocumentFragment();
+    for (const [a,b] of chunks){ const d = document.createElement('div'); d.className='c'; d.textContent = doc.text.slice(a,b); frag.appendChild(d); chunkEls2.push(d); }
+    reader2.appendChild(frag); r2key = k;
+  }
   function layout(){
     const st = parseFloat(getComputedStyle($('#probe')).paddingTop) || 0;
     const lh = LH(), H = document.documentElement.clientHeight || innerHeight;
@@ -195,11 +212,18 @@
     const mt = Number(cfg.mt), mb = Number(cfg.mb);
     const avail = H - st - (mt + mb) * lh;
     nLines = Math.max(3, Math.floor(avail / lh));
-    view.style.top = 'auto';
-    view.style.bottom = (mb * lh) + 'px';
-    view.style.height = (nLines * lh) + 'px';
-    // 마지막 페이지도 맨 윗줄부터 맞춰 보이도록 아래에 (n-1)줄 공간
-    reader.style.paddingBottom = doc ? ((nLines - 1) * lh) + 'px' : '0';
+    const W = document.documentElement.clientWidth || innerWidth;
+    spread = !!doc && (cfg.spread === 'on' || (cfg.spread === 'land' && W > H && W >= 700));
+    body.classList.toggle('spread', spread);
+    for (const v of [view, view2]){ v.style.top = 'auto'; v.style.bottom = (mb * lh) + 'px'; v.style.height = (nLines * lh) + 'px'; }
+    if (spread){
+      view.style.left = '0'; view.style.right = 'auto'; view.style.width = Math.floor(W/2) + 'px';
+      view2.style.left = Math.floor(W/2) + 'px'; view2.style.width = Math.floor(W/2) + 'px'; // 두 쪽 폭을 똑같이 해야 줄바꿈이 같아짐
+      fillReader2();
+    } else { view.style.left = '0'; view.style.right = '0'; view.style.width = ''; }
+    // 마지막 페이지도 맨 윗줄부터 맞춰 보이도록 아래 공간
+    reader.style.paddingBottom = doc ? ((nLines * (spread ? 2 : 1) - 1) * lh) + 'px' : '0';
+    reader2.style.paddingBottom = (2 * nLines * lh) + 'px';
   }
 
   function keepPos(fn){ const line = topLine(); fn(); applyCfg(); setTopLine(line); }
@@ -207,7 +231,7 @@
   $('#fsDown').onclick = () => keepPos(() => cfg.fs = Math.max(11, cfg.fs - 1));
   SEGS.filter(([,k]) => k !== 'blank').forEach(([sel,k]) =>
     document.querySelectorAll(sel+' [data-v]').forEach(b => b.onclick = () => {
-      if (k === 'lh' || k === 'pad' || k === 'font'){ const p = getRatio(); cfg[k] = b.dataset.v; applyCfg(); setRatio(p); }
+      if (k === 'lh' || k === 'pad' || k === 'font' || k === 'mw' || k === 'spread'){ const p = getRatio(); cfg[k] = b.dataset.v; applyCfg(); setRatio(p); }
       else keepPos(() => cfg[k] = b.dataset.v);
     }));
   document.querySelectorAll('#blankSeg [data-v]').forEach(b => b.onclick = () => {
@@ -266,6 +290,7 @@
     const frag = document.createDocumentFragment();
     for (const [a,b] of chunks){ const d = document.createElement('div'); d.className='c'; d.textContent = text.slice(a,b); frag.appendChild(d); chunkEls.push(d); }
     reader.appendChild(frag);
+    reader2.textContent = ''; chunkEls2 = []; r2key = '';
     $('#title').textContent = name; document.title = name + ' – 텍스트 뷰어';
     hits = []; curHit = -1; markedChunk = -1; $('#count').textContent = '';
     layout();
@@ -277,10 +302,10 @@
   // ---- 위치 (항상 줄 단위) ----
   function maxScroll(){ return Math.max(1, view.scrollHeight - view.clientHeight); }
   function topLine(){ return Math.round(view.scrollTop / LH()); }
-  function setTopLine(n){ view.scrollTop = Math.max(0, n) * LH(); updateProgress(); }
+  function setTopLine(n){ view.scrollTop = Math.max(0, n) * LH(); if (spread) view2.scrollTop = view.scrollTop + nLines * LH(); updateProgress(); if (spread && typeof savePos === 'function') savePos(); }
   function getRatio(){ return view.scrollTop / maxScroll(); }
   function setRatio(r){ setTopLine(Math.round(r * maxScroll() / LH())); }
-  function snap(){ const y = topLine() * LH(); if (Math.abs(view.scrollTop - y) > 0.5) view.scrollTop = y; }
+  function snap(){ if (spread) return; const y = topLine() * LH(); if (Math.abs(view.scrollTop - y) > 0.5) view.scrollTop = y; }
   function updateProgress(){
     const r = doc ? Math.min(1, getRatio()) : 0;
     $('#slider').value = Math.round(r*1000); $('#pct').textContent = (r*100).toFixed(1) + '%';
@@ -292,17 +317,42 @@
   $('#slider').oninput = e => { if (doc) setRatio(e.target.value / 1000); };
   addEventListener('resize', () => { const l = topLine(); layout(); setTopLine(l); });
 
-  function page(dir){ const step = Math.max(1, nLines - Number(cfg.ov)); setTopLine(topLine() + dir * step); }
+  function page(dir){ const step = Math.max(1, nLines * (spread ? 2 : 1) - Number(cfg.ov)); setTopLine(topLine() + dir * step); }
 
   // ---- 탭 ----
-  view.addEventListener('click', e => {
+  let swiped = false;
+  function onTap(e){
     if (!doc) return;
+    if (swiped){ swiped = false; return; }
     if (getSelection && String(getSelection())) return;
+    if (spread){
+      const x = e.clientX / (document.documentElement.clientWidth || innerWidth);
+      if (cfg.tap === '1' && x < 0.3) page(-1);
+      else if (cfg.tap === '1' && x > 0.7) page(1);
+      else body.classList.toggle('hideui');
+      return;
+    }
     const rc = view.getBoundingClientRect(), y = (e.clientY - rc.top) / rc.height;
     if (cfg.tap === '1' && y < 0.3) page(-1);
     else if (cfg.tap === '1' && y > 0.7) page(1);
     else body.classList.toggle('hideui');
-  });
+  }
+  view.addEventListener('click', onTap); view2.addEventListener('click', onTap);
+  // 양쪽 보기에서는 스와이프로 넘김 (←/↑ 다음, →/↓ 이전)
+  let tx = 0, ty = 0;
+  for (const v of [view, view2]){
+    v.addEventListener('touchstart', e => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, {passive:true});
+    v.addEventListener('touchmove', e => { if (spread) e.preventDefault(); }, {passive:false});
+    v.addEventListener('touchend', e => {
+      if (!spread) return;
+      const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < 40) return;
+      swiped = true; setTimeout(() => swiped = false, 400);
+      if (Math.abs(dx) > Math.abs(dy)) page(dx < 0 ? 1 : -1); else page(dy < 0 ? 1 : -1);
+    });
+  }
+  // 양쪽 보기 위치 저장
+  function savePos(){ if (!doc) return; const p = store.get('pos', {}); p[key] = getRatio(); const ks = Object.keys(p); if (ks.length > 200) delete p[ks[0]]; store.set('pos', p); }
   addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' '){ e.preventDefault(); page(1); }
@@ -327,7 +377,7 @@
     show();
   }
   function step(d){ if (!hits.length){ doSearch(); return; } curHit = (curHit + d + hits.length) % hits.length; show(); }
-  function clearMark(){ if (markedChunk >= 0){ const [a,b] = chunks[markedChunk]; chunkEls[markedChunk].textContent = doc.text.slice(a,b); markedChunk = -1; } }
+  function clearMark(){ if (markedChunk >= 0){ const [a,b] = chunks[markedChunk]; const t = doc.text.slice(a,b); chunkEls[markedChunk].textContent = t; if (chunkEls2[markedChunk]) chunkEls2[markedChunk].textContent = t; markedChunk = -1; } }
   function show(){
     clearMark();
     const pos = hits[curHit], len = $('#q').value.length;
@@ -336,10 +386,12 @@
     el.textContent = '';
     const m = document.createElement('mark'); m.textContent = t.slice(pos, pos+len);
     el.append(t.slice(a, pos), m, t.slice(pos+len, Math.max(b, pos+len)));
+    if (chunkEls2[ci]){ const e2 = chunkEls2[ci]; e2.textContent = ''; e2.append(t.slice(a, pos), m.cloneNode(true), t.slice(pos+len, Math.max(b, pos+len))); }
     markedChunk = ci;
     const r = m.getBoundingClientRect(), vr = view.getBoundingClientRect();
     const lineOfMatch = Math.round((view.scrollTop + r.top - vr.top) / LH());
-    setTopLine(lineOfMatch - Math.floor(nLines * 0.3));
+    if (spread){ const per = 2 * nLines; setTopLine(Math.floor(lineOfMatch / per) * per); }
+    else setTopLine(lineOfMatch - Math.floor(nLines * 0.3));
     $('#count').textContent = (curHit+1) + '/' + hits.length;
   }
 
